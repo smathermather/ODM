@@ -42,7 +42,8 @@ def create_25dmesh(inPointCloud, outMesh, radius_steps=["0.05"], dsm_resolution=
         mesh = screened_poisson_reconstruction(dsm_points, outMesh, depth=depth, 
                                     samples=samples, 
                                     maxVertexCount=maxVertexCount, 
-                                    threads=max(1, available_cores - 1)), # poissonrecon can get stuck on some machines if --threads == all cores
+                                    ), # poissonrecon can get stuck on some machines if --threads == all cores
+                                    #threads=max(1, available_cores - 1)), # poissonrecon can get stuck on some machines if --threads == all cores
     else:
         raise 'Not a valid method: ' + method
 
