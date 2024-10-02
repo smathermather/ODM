@@ -18,7 +18,7 @@ def ply_info(input_ply):
 
     # Read PLY header, check if point cloud has normals
     has_normals = False
-    has_views = False
+    has_views = True
     vertex_count = 0
 
     with open(input_ply, 'r', errors='ignore') as f:
