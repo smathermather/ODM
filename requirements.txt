@@ -1,5 +1,6 @@
 appsettings==0.8
 beautifulsoup4==4.9.3
+dateutil==2.8.2
 edt==2.0.2
 ODMExifRead==3.0.4
 Fiona==1.8.17 ; sys_platform == 'linux'
