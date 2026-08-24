@@ -1,0 +1,41 @@
+name: Docker CPU Image
+
+on:
+  push:
+    branches:
+    - master
+    tags:
+    - v*
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: docker-cpu-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  cpu:
+    uses: docker/github-builder/.github/workflows/build.yml@v1
+    with:
+      output: image
+      push: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') }}
+      file: ./Dockerfile
+      target: runtime
+      platforms: |
+        linux/amd64
+        linux/arm64
+      set-meta-labels: true
+      meta-images: opendronemap/odm
+      meta-tags: |
+        type=edge,branch=master
+        type=semver,pattern={{version}}
+        type=ref,event=pr
+    secrets:
+      registry-auths: |
+        - registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}

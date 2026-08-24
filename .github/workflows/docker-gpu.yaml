@@ -1,0 +1,58 @@
+name: Docker GPU Image
+
+on:
+  push:
+    branches:
+    - master
+    tags:
+    - v*
+  # Limited to the paths that can break this image and are not covered by the
+  # CPU image's PR build.
+  pull_request:
+    paths:
+    - gpu.Dockerfile
+    - .dockerignore
+    - pixi.toml
+    - pixi.lock
+    - SuperBuild/**
+    - scripts/docker-entrypoint.sh
+    - scripts/smoke.py
+    - .github/workflows/docker-gpu.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: docker-gpu-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  gpu:
+    uses: docker/github-builder/.github/workflows/build.yml@v1
+    with:
+      output: image
+      # Only refs that produce tags may push: a workflow_dispatch on any other
+      # branch would otherwise push untagged digests and then fail.
+      push: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') }}
+      file: ./gpu.Dockerfile
+      target: runtime
+      platforms: linux/amd64
+      set-meta-labels: true
+      meta-images: opendronemap/odm
+      meta-flavor: |
+        latest=false
+        suffix=-gpu
+      # :edge-gpu on master; :<version>-gpu and :gpu on a v* tag. The '-'
+      # guard skips prereleases (v3.7.0-rc1)
+      meta-tags: |
+        type=edge,branch=master
+        type=semver,pattern={{version}}
+        type=ref,event=pr
+        type=raw,value=gpu,suffix=,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
+    secrets:
+      registry-auths: |
+        - registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
