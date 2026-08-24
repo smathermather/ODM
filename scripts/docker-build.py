@@ -2,9 +2,10 @@
 """Build the runtime ODM Docker image with OCI image labels.
 
 Invoked via `pixi run docker-build` (add `--gpu` for the GPU image, and pass
-extra `docker build` flags after `--`). This computes the revision, version and
-created build args from the working tree so a locally built image carries the
-same OCI labels as the images published by CI.
+extra `docker build` flags after `--`). This stamps revision, version and
+created labels from the working tree; published images get the equivalent
+labels from metadata-action, with the version derived from the git ref there
+rather than the VERSION file.
 """
 import argparse
 import os
@@ -19,7 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def parse_args():
     p = argparse.ArgumentParser(description="Build the runtime ODM Docker image")
     p.add_argument("--gpu", action="store_true", help="Build the GPU image from gpu.Dockerfile")
-    p.add_argument("-t", "--tag", default="", help="Image tag (default: opendronemap/odm:<branch>, or :latest/:gpu on master)")
+    p.add_argument("-t", "--tag", default="", help="Image tag (default: opendronemap/odm:<branch>, or :edge/:edge-gpu on master)")
     return p.parse_known_args()
 
 
@@ -41,11 +42,12 @@ def git_branch():
 
 
 def default_tag(gpu, branch):
-    # Off master, tag with the branch name so local builds don't clobber :latest.
+    # Off master, tag with the branch name; on master, match the tag CI
+    # publishes for that ref. :latest and :gpu belong to releases.
     if branch and branch != "master":
         slug = re.sub(r"[^A-Za-z0-9_.-]", "-", branch).lstrip(".-")
         return "opendronemap/odm:%s-gpu" % slug if gpu else "opendronemap/odm:%s" % slug
-    return "opendronemap/odm:gpu" if gpu else "opendronemap/odm:latest"
+    return "opendronemap/odm:edge-gpu" if gpu else "opendronemap/odm:edge"
 
 
 def main():
@@ -63,9 +65,9 @@ def main():
         "-f", dockerfile,
         "--target", "runtime",
         "-t", tag,
-        "--build-arg", "GIT_COMMIT=%s" % git_revision(),
-        "--build-arg", "BUILD_DATE=%s" % build_date,
-        "--build-arg", "IMAGE_VERSION=%s" % version,
+        "--label", "org.opencontainers.image.revision=%s" % git_revision(),
+        "--label", "org.opencontainers.image.created=%s" % build_date,
+        "--label", "org.opencontainers.image.version=%s" % version,
         *docker_args,
         ".",
     ]

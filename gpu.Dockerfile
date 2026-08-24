@@ -16,7 +16,11 @@ ENV CONDA_OVERRIDE_CUDA=12.0
 FROM dev AS builder
 
 COPY pixi.toml pixi.lock ./
-RUN pixi install --locked -e gpu
+RUN pixi install --locked -e gpu \
+    && pixi install --locked -e gpu-prod \
+    && mkdir -p scripts \
+    && pixi shell-hook -e gpu-prod -s bash > scripts/pixi-shell-hook \
+    && rm -rf .pixi/envs/gpu-prod/include .pixi/envs/gpu-prod/share/doc .pixi/envs/gpu-prod/share/man .pixi/envs/gpu-prod/share/info
 
 COPY . ./
 RUN pixi run -e gpu build && pixi run -e gpu test
@@ -27,23 +31,11 @@ RUN mkdir -p /odm-runtime/SuperBuild /odm-runtime/scripts \
     && cp run.py settings.yaml VERSION /odm-runtime/ \
     && cp scripts/docker-entrypoint.sh scripts/smoke.py /odm-runtime/scripts/
 
-FROM dev AS prod-env
-
-COPY pixi.toml pixi.lock ./
-RUN pixi install --locked -e gpu-prod \
-    && mkdir -p scripts \
-    && pixi shell-hook -e gpu-prod -s bash > scripts/pixi-shell-hook \
-    && rm -rf .pixi/envs/gpu-prod/include .pixi/envs/gpu-prod/share/doc .pixi/envs/gpu-prod/share/man .pixi/envs/gpu-prod/share/info
-
 FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04 AS runtime
 
-ARG GIT_COMMIT=unknown
-ARG BUILD_DATE=unknown
-ARG IMAGE_VERSION=unknown
-LABEL org.opencontainers.image.revision="$GIT_COMMIT" \
-      org.opencontainers.image.source="https://github.com/OpenDroneMap/ODM" \
-      org.opencontainers.image.version="$IMAGE_VERSION" \
-      org.opencontainers.image.created="$BUILD_DATE" \
+# revision, version and created are stamped at build time: by metadata-action
+# in the publish workflows, by scripts/docker-build.py locally.
+LABEL org.opencontainers.image.source="https://github.com/OpenDroneMap/ODM" \
       org.opencontainers.image.title="OpenDroneMap" \
       org.opencontainers.image.description="Command line toolkit for processing aerial drone imagery" \
       org.opencontainers.image.url="https://www.opendronemap.org" \
@@ -56,8 +48,8 @@ ENV PIXI_ENV=gpu-prod
 
 WORKDIR /code
 
-COPY --from=prod-env /code/.pixi/envs/gpu-prod .pixi/envs/gpu-prod
-COPY --from=prod-env /code/scripts/pixi-shell-hook scripts/pixi-shell-hook
+COPY --from=builder /code/.pixi/envs/gpu-prod .pixi/envs/gpu-prod
+COPY --from=builder /code/scripts/pixi-shell-hook scripts/pixi-shell-hook
 COPY --from=builder /odm-runtime/ ./
 
 # The smoke test launches the CUDA-linked OpenMVS binaries, which need

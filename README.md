@@ -100,6 +100,8 @@ ODM has support for doing SIFT feature extraction on a GPU, which is about 2x fa
 docker run -ti --rm -v c:/Users/youruser/datasets:/datasets --gpus all opendronemap/odm:gpu --project-path /datasets project --feature-type sift
 ```
 
+> **Note:** `opendronemap/odm:gpu` is the latest GPU release. To pin a release, use `opendronemap/odm:<version>-gpu` (for example `opendronemap/odm:3.6.1-gpu`); for the latest development build, use `opendronemap/odm:edge-gpu`.
+
 When you run ODM, if the GPU is recognized, in the first few lines of output you should see:
 
 ```
@@ -189,7 +191,7 @@ pixi run docker-build -- --gpu
 ```
 
 These stamp the image with the OCI labels (revision, version, created) and tag
-it `opendronemap/odm:latest` (`:gpu`) on master, or `opendronemap/odm:<branch>`
+it `opendronemap/odm:edge` (`:edge-gpu`) on master, or `opendronemap/odm:<branch>`
 off master. Pass a custom tag or extra `docker build` flags after `--`, e.g.
 `pixi run docker-build -- -t my_odm_image --no-cache`.
 
