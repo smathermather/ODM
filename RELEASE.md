@@ -40,13 +40,12 @@ is a fresh build of the tagged commit by the same workflow that builds master,
 not a copy of the master image. `pixi.lock` pins the toolchain and library
 dependencies; the Ubuntu base image and apt packages resolve at build time.
 
-The CPU workflow delegates the build to Docker's `github-builder` reusable
+Both workflows delegate the build to Docker's `github-builder` reusable
 workflow (`docker/github-builder/.github/workflows/build.yml`): each platform
 builds on its own native GitHub-hosted runner and the results are assembled
-into one multi-arch manifest, with signed SLSA provenance attached. The
-`cosign` commands to verify a build's signature are available from the
-workflow run's outputs. The GPU workflow builds on a hosted runner after
-clearing the preinstalled toolchains its image needs the disk for.
+into one manifest, with signed SLSA provenance attached. The `cosign`
+commands to verify a build's signature are available from the workflow run's
+outputs.
 
 ## Pre-flight checklist
 
